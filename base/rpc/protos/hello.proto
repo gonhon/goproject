@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package protos;
+
+option go_package="./;protos";
+
+message String {
+	string value = 1;
+}
