@@ -59,7 +59,7 @@ func chanChange() {
 	fmt.Println("End.")
 }
 
-//--------------------select--------------------
+// --------------------select--------------------
 func selectFunc() {
 	intChan := [3]chan int{
 		make(chan int, 1),
@@ -93,7 +93,7 @@ func asycService() chan string {
 	return retCh
 }
 
-//--------------------闭包--------------------
+// --------------------闭包--------------------
 type opertion func(x, y int) (int, error)
 
 func exec(x, y int, op opertion) (int, error) {
@@ -112,4 +112,29 @@ func genCalculate(op opertion) calculateFunc {
 		}
 		return op(x, y)
 	}
+}
+
+//--------------------slice--------------------
+
+func listFunc() {
+	var list1 = [3]string{"a", "b", "c"}
+	newList := updateList(list1)
+	fmt.Printf("original list :%v\n", list1)
+	fmt.Printf("update list :%v\n", newList)
+}
+func updateList(list [3]string) [3]string {
+	list[0] = "z"
+	return list
+}
+
+func sliceFunc() {
+	var list1 = []string{"a", "b", "c"}
+	newList := updateSlice(list1)
+	fmt.Printf("original list :%v\n", list1)
+	fmt.Printf("update list :%v\n", newList)
+}
+
+func updateSlice(list []string) []string {
+	list[0] = "z"
+	return list
 }
