@@ -44,3 +44,10 @@ func TestCalculate(t *testing.T) {
 
 	t.Log("val:", val)
 }
+
+func TestListFunc(t *testing.T) {
+	listFunc()
+}
+func TestSliceFunc(t *testing.T) {
+	sliceFunc()
+}
