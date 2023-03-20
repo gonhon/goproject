@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 const (
@@ -15,10 +16,27 @@ var (
 	lock           sync.Mutex
 	productionCond *sync.Cond = sync.NewCond(&lock)
 	consumeCond    *sync.Cond = sync.NewCond(&lock)
+	group          sync.WaitGroup
 	list           []int
+	cache          = make(chan int, MAX)
 )
 
-func productionLocal() {
+type prodcons interface {
+	//生产
+	production()
+	//消费
+	consume()
+}
+
+// 使用锁
+type ProdconsLock struct {
+}
+
+// 使用chan
+type ProdconsChan struct {
+}
+
+func (ProdconsLock) production() {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -34,7 +52,7 @@ func productionLocal() {
 
 }
 
-func consumeLock() {
+func (ProdconsLock) consume() {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -50,4 +68,40 @@ func consumeLock() {
 	fmt.Printf("消费者...获取的值:%d\n", val)
 	//唤醒生产
 	productionCond.Broadcast()
+}
+
+//使用chan
+
+func (ProdconsChan) production() {
+	val := rand.Intn(100)
+	fmt.Printf("production... %d\n", val)
+	cache <- val
+}
+
+func (ProdconsChan) consume() {
+	val := <-cache
+	fmt.Printf("consume... %d\n", val)
+}
+
+func Exec(parmas prodcons, productionSleep, consumeSleep time.Duration) {
+	//生产者
+	for i := 1; i <= MAX; i++ {
+		go func() {
+			group.Add(1)
+			defer group.Done()
+			time.Sleep(productionSleep)
+			parmas.production()
+		}()
+	}
+
+	//消费者
+	for j := 1; j <= MAX; j++ {
+		go func() {
+			group.Add(1)
+			defer group.Done()
+			time.Sleep(consumeSleep)
+			parmas.consume()
+		}()
+	}
+	group.Wait()
 }
