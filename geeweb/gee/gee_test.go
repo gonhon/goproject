@@ -3,6 +3,7 @@ package gee
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"testing"
 )
 
@@ -39,6 +40,7 @@ func TestEngine(t *testing.T) {
 			"password": ctx.PostFrom("password"),
 		})
 	})
-	log.Fatalf("start... 8080")
-	r.Run(":9090")
+	port := 8080
+	log.Printf("start... %d", port)
+	r.Run(":" + strconv.Itoa(port))
 }
