@@ -20,7 +20,7 @@ func newRouter() *router {
 
 func (r *router) AddRouter(method, pattern string, handler HandlerFunc) {
 	log.Printf("Route %4s - %s", method, pattern)
-	parts := parsePattent(pattern)
+	parts := parsePattern(pattern)
 	if _, ok := r.roots[method]; !ok {
 		r.roots[method] = &node{}
 	}
@@ -40,7 +40,7 @@ func (r *router) handle(c *Context) {
 }
 
 func (r *router) GetRoute(method, path string) (*node, map[string]string) {
-	searchParts := parsePattent(path)
+	searchParts := parsePattern(path)
 	params := make(map[string]string)
 	root, ok := r.roots[method]
 	if !ok {
@@ -48,7 +48,7 @@ func (r *router) GetRoute(method, path string) (*node, map[string]string) {
 	}
 	node := root.search(searchParts, 0)
 	if node != nil {
-		parts := parsePattent(node.pattern)
+		parts := parsePattern(node.pattern)
 		for i, p := range parts {
 			if p[0] == ':' {
 				params[p[1:]] = searchParts[i]
@@ -63,12 +63,11 @@ func (r *router) GetRoute(method, path string) (*node, map[string]string) {
 	return nil, nil
 }
 
-func parsePattent(pattern string) []string {
-	paths := strings.Split(pattern, "/")
+func parsePattern(pattern string) []string {
 
-	parts := make([]string, len(paths))
+	parts := make([]string, 0)
 
-	for _, item := range paths {
+	for _, item := range strings.Split(pattern, "/") {
 		if item != "" {
 			parts = append(parts, item)
 			if item[0] == '*' {
