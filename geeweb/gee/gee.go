@@ -19,7 +19,6 @@ func New() *Engine {
 	return &Engine{router: newRouter()}
 }
 
-//注册路由
 func (engine *Engine) AddRouter(method, pattern string, handler HandlerFunc) {
 	engine.router.AddRouter(method, pattern, handler)
 }
@@ -32,7 +31,6 @@ func (engine *Engine) POST(pattern string, handler HandlerFunc) {
 	engine.AddRouter("POST", pattern, handler)
 }
 
-//处理相关请求  找到对应的handler
 func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	engine.router.handle(newContext(resp, req))
 }
