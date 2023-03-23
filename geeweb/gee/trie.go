@@ -25,7 +25,8 @@ func (n *node) matchChildren(part string) *node {
 
 // 匹配所有的
 func (n *node) matchChildrens(part string) []*node {
-	childrens := make([]*node, len(n.children))
+	// childrens := make([]*node, len(n.children))//error
+	childrens := make([]*node, 0)
 	for _, children := range n.children {
 		if children.part == part && children.isWild {
 			childrens = append(childrens, children)
