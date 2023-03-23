@@ -9,7 +9,7 @@ type node struct {
 	part string
 	//子节点 [c,d]
 	children []*node
-	//是否精准匹配  或 * 时为true
+	//是否模糊匹配  : 或 * 时为true
 	isWild bool
 }
 
