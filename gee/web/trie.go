@@ -35,21 +35,27 @@ func (n *node) matchChildrens(part string) []*node {
 	return childrens
 }
 
-// 插入节点
+//将url按照parts插入到tire中
 func (n *node) insert(pattern string, parts []string, height int) {
 	if len(parts) == height {
+		//最后插入pattern
 		n.pattern = pattern
 		return
 	}
 	part := parts[height]
+	//找到第一个匹配的结点
 	child := n.matchChildren(part)
+	//没有匹配的结点就作为当前元素的子节点
 	if child == nil {
+		// :|* isWild为true
 		child = &node{part: part, isWild: part[0] == ':' || part[0] == '*'}
 		n.children = append(n.children, child)
 	}
+	//递归插入
 	child.insert(pattern, parts, height+1)
 }
 
+//根据parts从根逐个匹配
 func (n *node) search(parts []string, height int) *node {
 	if len(parts) == height || strings.HasPrefix(n.part, "*") {
 		if n.pattern == "" {
@@ -59,9 +65,11 @@ func (n *node) search(parts []string, height int) *node {
 	}
 
 	part := parts[height]
+	//根据part找到所有匹配的节点
 	children := n.matchChildrens(part)
 
 	for _, child := range children {
+		//逐个递归查询
 		result := child.search(parts, height+1)
 		if result != nil {
 			return result
