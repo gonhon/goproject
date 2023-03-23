@@ -32,7 +32,10 @@ func (engine *Engine) POST(pattern string, handler HandlerFunc) {
 }
 
 func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	engine.router.handle(newContext(resp, req))
+	//"/favicon.ico"
+	conext := newContext(resp, req)
+	engine.router.handle(conext)
+	// engine.router.handle(newContext(resp, req))
 }
 
 func (engine *Engine) Run(addr string) error {

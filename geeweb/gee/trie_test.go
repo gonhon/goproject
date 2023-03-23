@@ -2,6 +2,8 @@ package gee
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"reflect"
 	"testing"
 )
@@ -25,9 +27,11 @@ func TestParsePattern(t *testing.T) {
 	}
 }
 
-func TestGetRoute(t *testing.T) {
+func TestRouter(t *testing.T) {
 	r := newTestRouter()
-	n, ps := r.GetRoute("GET", "/hello/geektutu")
+	log.Printf("%v", r)
+	// n, ps := r.GetRoute("GET", "/hello/geektutu")
+	n, ps := r.GetRoute("GET", "/hello/:name")
 
 	if n == nil {
 		t.Fatal("nil shouldn't be returned")
@@ -43,4 +47,26 @@ func TestGetRoute(t *testing.T) {
 
 	fmt.Printf("matched path: %s, params['name']: %s\n", n.pattern, ps["name"])
 
+}
+
+func TestRun(t *testing.T) {
+	r := New()
+	r.Get("/", func(c *Context) {
+		c.Html(http.StatusOK, "<h1>Hello Gee</h1>")
+	})
+
+	r.Get("/hello", func(c *Context) {
+		// expect /hello?name=geektutu
+		c.String(http.StatusOK, "hello %s, you're at %s\n", c.Query("name"), c.Path)
+	})
+
+	r.Get("/hello/:name", func(c *Context) {
+		// expect /hello/geektutu
+		c.String(http.StatusOK, "hello %s, you're at %s\n", c.Param("name"), c.Path)
+	})
+
+	r.Get("/assets/*filepath", func(c *Context) {
+		c.Json(http.StatusOK, H{"filepath": c.Param("filepath")})
+	})
+	r.Run(":9999")
 }

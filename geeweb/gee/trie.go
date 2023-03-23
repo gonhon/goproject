@@ -16,7 +16,7 @@ type node struct {
 // 匹配第一个节点
 func (n *node) matchChildren(part string) *node {
 	for _, children := range n.children {
-		if children.part == part && children.isWild {
+		if children.part == part || children.isWild {
 			return children
 		}
 	}
@@ -27,9 +27,9 @@ func (n *node) matchChildren(part string) *node {
 func (n *node) matchChildrens(part string) []*node {
 	// childrens := make([]*node, len(n.children))//error
 	childrens := make([]*node, 0)
-	for _, children := range n.children {
-		if children.part == part && children.isWild {
-			childrens = append(childrens, children)
+	for _, child := range n.children {
+		if child.part == part || child.isWild {
+			childrens = append(childrens, child)
 		}
 	}
 	return childrens
@@ -42,12 +42,12 @@ func (n *node) insert(pattern string, parts []string, height int) {
 		return
 	}
 	part := parts[height]
-	children := n.matchChildren(part)
-	if children == nil {
-		children = &node{part: part, isWild: part[0] == '*' || part[0] == ':'}
-		n.children = append(n.children, children)
+	child := n.matchChildren(part)
+	if child == nil {
+		child = &node{part: part, isWild: part[0] == ':' || part[0] == '*'}
+		n.children = append(n.children, child)
 	}
-	children.insert(pattern, parts, height+1)
+	child.insert(pattern, parts, height+1)
 }
 
 func (n *node) search(parts []string, height int) *node {
@@ -61,8 +61,8 @@ func (n *node) search(parts []string, height int) *node {
 	part := parts[height]
 	children := n.matchChildrens(part)
 
-	for _, children := range children {
-		result := children.search(parts, height+1)
+	for _, child := range children {
+		result := child.search(parts, height+1)
 		if result != nil {
 			return result
 		}

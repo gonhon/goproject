@@ -29,11 +29,10 @@ func (r *router) AddRouter(method, pattern string, handler HandlerFunc) {
 }
 
 func (r *router) handle(c *Context) {
-	key := getKey(c.Method, c.Path)
 	n, params := r.GetRoute(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
-		r.handlers[key](c)
+		r.handlers[c.Method+"-"+n.pattern](c)
 	} else {
 		fmt.Fprintf(c.Writer, "404 NOT FOUND %v\n", c.Req.URL.Path)
 	}
@@ -53,7 +52,7 @@ func (r *router) GetRoute(method, path string) (*node, map[string]string) {
 			if p[0] == ':' {
 				params[p[1:]] = searchParts[i]
 			}
-			if p[0] == '*' || len(p) > 1 {
+			if p[0] == '*' && len(p) > 1 {
 				params[p[1:]] = strings.Join(searchParts[i:], "/")
 				break
 			}
@@ -64,10 +63,10 @@ func (r *router) GetRoute(method, path string) (*node, map[string]string) {
 }
 
 func parsePattern(pattern string) []string {
-
 	parts := make([]string, 0)
+	strs := strings.Split(pattern, "/")
 
-	for _, item := range strings.Split(pattern, "/") {
+	for _, item := range strs {
 		if item != "" {
 			parts = append(parts, item)
 			if item[0] == '*' {
