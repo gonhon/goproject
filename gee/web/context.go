@@ -15,6 +15,8 @@ type Context struct {
 	Method     string
 	Params     map[string]string
 	StatusCode int
+	middleware []HandlerFunc
+	index      int
 }
 
 func newContext(resp http.ResponseWriter, req *http.Request) *Context {
@@ -23,6 +25,7 @@ func newContext(resp http.ResponseWriter, req *http.Request) *Context {
 		Req:    req,
 		Path:   req.URL.Path,
 		Method: req.Method,
+		index:  -1,
 	}
 }
 
@@ -72,4 +75,17 @@ func (c *Context) Html(code int, html string) {
 func (c *Context) Param(key string) string {
 	val, _ := c.Params[key]
 	return val
+}
+
+func (c *Context) Fail(code int, err string) {
+	c.index = len(c.middleware)
+	c.Json(code, H{"message": err})
+}
+
+func (c *Context) Next() {
+	c.index++
+	hlen := len(c.middleware)
+	for ; c.index < hlen; c.index++ {
+		c.middleware[c.index](c)
+	}
 }

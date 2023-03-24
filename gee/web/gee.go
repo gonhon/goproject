@@ -3,15 +3,16 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 type HandlerFunc func(*Context)
 
 type RouterGroup struct {
-	prefix     string
-	middleware HandlerFunc
-	parent     *RouterGroup
-	engine     *Engine
+	prefix      string
+	middlewares []HandlerFunc
+	parent      *RouterGroup
+	engine      *Engine
 }
 type Engine struct {
 	*RouterGroup
@@ -53,9 +54,20 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	group.AddRouter("POST", pattern, handler)
 }
 
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
+}
+
 func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	var middlewares []HandlerFunc
+	for _, group := range engine.groups {
+		if strings.HasPrefix(req.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	//"/favicon.ico"
 	conext := newContext(resp, req)
+	conext.middleware = middlewares
 	engine.router.handle(conext)
 	// engine.router.handle(newContext(resp, req))
 }

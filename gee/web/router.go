@@ -33,10 +33,13 @@ func (r *router) handle(c *Context) {
 	n, params := r.GetRoute(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
-		r.handlers[c.Method+"-"+n.pattern](c)
+		r.handlers[getKey(c.Method, n.pattern)](c)
 	} else {
-		fmt.Fprintf(c.Writer, "404 NOT FOUND %v\n", c.Req.URL.Path)
+		c.middleware = append(c.middleware, func(c *Context) {
+			fmt.Fprintf(c.Writer, "404 NOT FOUND %v\n", c.Req.URL.Path)
+		})
 	}
+	c.Next()
 }
 
 func (r *router) GetRoute(method, path string) (*node, map[string]string) {
