@@ -7,8 +7,16 @@ import (
 
 type HandlerFunc func(*Context)
 
+type RouterGroup struct {
+	prefix     string
+	middleware HandlerFunc
+	parent     *RouterGroup
+	engine     *Engine
+}
 type Engine struct {
+	*RouterGroup
 	router *router
+	groups []*RouterGroup
 }
 
 func getKey(method, pattern string) string {
@@ -16,19 +24,33 @@ func getKey(method, pattern string) string {
 }
 
 func New() *Engine {
-	return &Engine{router: newRouter()}
+	engine := &Engine{router: newRouter()}
+	engine.RouterGroup = &RouterGroup{engine: engine}
+	engine.groups = []*RouterGroup{engine.RouterGroup}
+	return engine
 }
 
-func (engine *Engine) AddRouter(method, pattern string, handler HandlerFunc) {
-	engine.router.AddRouter(method, pattern, handler)
+func (group *RouterGroup) Group(prefix string) *RouterGroup {
+	engine := group.engine
+	newGroup := &RouterGroup{
+		prefix: engine.prefix + prefix,
+		parent: group,
+		engine: engine,
+	}
+	engine.groups = append(engine.groups, newGroup)
+	return newGroup
 }
 
-func (engine *Engine) Get(pattern string, handler HandlerFunc) {
-	engine.AddRouter("GET", pattern, handler)
+func (group *RouterGroup) AddRouter(method, pattern string, handler HandlerFunc) {
+	group.engine.router.AddRouter(method, group.prefix+pattern, handler)
 }
 
-func (engine *Engine) POST(pattern string, handler HandlerFunc) {
-	engine.AddRouter("POST", pattern, handler)
+func (group *RouterGroup) Get(pattern string, handler HandlerFunc) {
+	group.AddRouter("GET", pattern, handler)
+}
+
+func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
+	group.AddRouter("POST", pattern, handler)
 }
 
 func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
