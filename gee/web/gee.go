@@ -3,6 +3,7 @@ package web
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -67,6 +68,26 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 //添加middleware
 func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
 	group.middlewares = append(group.middlewares, middlewares...)
+}
+
+//静态文件映射
+func (group *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+	absulutePath := path.Join(group.prefix, relativePath)
+	fileSystem := http.StripPrefix(absulutePath, http.FileServer(fs))
+	return func(ctx *Context) {
+		file := ctx.Params["filepath"]
+		if _, err := fs.Open(file); err != nil {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+		fileSystem.ServeHTTP(ctx.Writer, ctx.Req)
+	}
+}
+
+//添加文件解析hander
+func (group *RouterGroup) Static(relativePath, root string) {
+	group.Get(path.Join(relativePath, "/*filepath"),
+		group.createStaticHandler(relativePath, http.Dir(root)))
 }
 
 //Http路由都会走这里

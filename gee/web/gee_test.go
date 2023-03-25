@@ -111,3 +111,13 @@ func TestMiddlewaresRun(t *testing.T) {
 
 	r.Run(":9999")
 }
+
+//静态文件解析
+func TestStaticRun(t *testing.T) {
+	r := New()
+	//解析当前文件夹
+	r.Static("/assets", "./")
+	//http://127.0.0.1:9999/assets/gee.go
+	//访问当前下的 gee.go
+	r.Run(":9999")
+}
