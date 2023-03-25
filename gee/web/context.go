@@ -73,8 +73,7 @@ func (c *Context) Html(code int, html string) {
 }
 
 func (c *Context) Param(key string) string {
-	val, _ := c.Params[key]
-	return val
+	return c.Params[key]
 }
 
 func (c *Context) Fail(code int, err string) {
