@@ -72,8 +72,8 @@ func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
 //Http路由都会走这里
 func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var middlewares []HandlerFunc
-	//找到组对应的middleware
 	for _, group := range engine.groups {
+		//根据group前缀找到对应的middleware
 		if strings.HasPrefix(req.URL.Path, group.prefix) {
 			middlewares = append(middlewares, group.middlewares...)
 		}
