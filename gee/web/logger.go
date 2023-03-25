@@ -8,9 +8,9 @@ import (
 func Logger() HandlerFunc {
 	return func(c *Context) {
 		t := time.Now()
-		// Process request
+		// 先处理其他的
 		c.Next()
-		// Calculate resolution time
+		//最后打印耗时
 		log.Printf("[%d] %s in %v", c.StatusCode, c.Req.RequestURI, time.Since(t))
 
 	}

@@ -43,6 +43,13 @@ func New() *Engine {
 	return engine
 }
 
+//默认使用 Logger  和 Recovery
+func Default() *Engine {
+	engine := New()
+	engine.Use(Logger(), Recovery())
+	return engine
+}
+
 //创建一个组  追加到engine后面
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	engine := group.engine

@@ -35,7 +35,9 @@ func (r *router) handle(c *Context) {
 	n, params := r.GetRoute(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
-		r.handlers[getKey(c.Method, n.pattern)](c)
+		// r.handlers[getKey(c.Method, n.pattern)](c)
+		//加入切片一起执行
+		c.middleware = append(c.middleware, r.handlers[getKey(c.Method, n.pattern)])
 	} else {
 		//没找到，添加 404 middleware
 		c.middleware = append(c.middleware, func(c *Context) {
