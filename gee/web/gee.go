@@ -8,17 +8,23 @@ import (
 
 type HandlerFunc func(*Context)
 
+//路由组
 type RouterGroup struct {
-	prefix      string
+	prefix string
+	//middleware
 	middlewares []HandlerFunc
 	parent      *RouterGroup
 	engine      *Engine
 }
+
+//维护路由关系
 type Engine struct {
 	*RouterGroup
 	router *router
 	groups []*RouterGroup
 }
+
+//RouterGroup和Engine使用了双向继承,双方都可以使用彼此的属性方法
 
 func getKey(method, pattern string) string {
 	return fmt.Sprintf("%s-%s", method, pattern)
@@ -26,14 +32,17 @@ func getKey(method, pattern string) string {
 
 func New() *Engine {
 	engine := &Engine{router: newRouter()}
+	//创建默认的组
 	engine.RouterGroup = &RouterGroup{engine: engine}
 	engine.groups = []*RouterGroup{engine.RouterGroup}
 	return engine
 }
 
+//创建一个组  追加到engine后面
 func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	engine := group.engine
 	newGroup := &RouterGroup{
+		//把父类的前缀也加上
 		prefix: engine.prefix + prefix,
 		parent: group,
 		engine: engine,
@@ -43,6 +52,7 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 }
 
 func (group *RouterGroup) AddRouter(method, pattern string, handler HandlerFunc) {
+	//路由添加组的前缀
 	group.engine.router.AddRouter(method, group.prefix+pattern, handler)
 }
 
@@ -54,22 +64,26 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	group.AddRouter("POST", pattern, handler)
 }
 
+//添加middleware
 func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
 	group.middlewares = append(group.middlewares, middlewares...)
 }
 
+//Http路由都会走这里
 func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var middlewares []HandlerFunc
+	//找到组对应的middleware
 	for _, group := range engine.groups {
 		if strings.HasPrefix(req.URL.Path, group.prefix) {
 			middlewares = append(middlewares, group.middlewares...)
 		}
 	}
 	//"/favicon.ico"
+	//将http信息包装conext
 	conext := newContext(resp, req)
 	conext.middleware = middlewares
+	//执行hander
 	engine.router.handle(conext)
-	// engine.router.handle(newContext(resp, req))
 }
 
 func (engine *Engine) Run(addr string) error {

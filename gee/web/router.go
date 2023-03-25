@@ -29,19 +29,24 @@ func (r *router) AddRouter(method, pattern string, handler HandlerFunc) {
 	r.handlers[getKey(method, pattern)] = handler
 }
 
+//请求走hander进行处理
 func (r *router) handle(c *Context) {
+	//找到对应的hander
 	n, params := r.GetRoute(c.Method, c.Path)
 	if n != nil {
 		c.Params = params
 		r.handlers[getKey(c.Method, n.pattern)](c)
 	} else {
+		//没找到，添加 404 middleware
 		c.middleware = append(c.middleware, func(c *Context) {
 			fmt.Fprintf(c.Writer, "404 NOT FOUND %v\n", c.Req.URL.Path)
 		})
 	}
+	//执行下一个middleware
 	c.Next()
 }
 
+//根据method和路由查询对应router信息
 func (r *router) GetRoute(method, path string) (*node, map[string]string) {
 	searchParts := parsePattern(path)
 	params := make(map[string]string)
