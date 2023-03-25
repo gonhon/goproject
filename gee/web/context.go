@@ -17,6 +17,7 @@ type Context struct {
 	StatusCode int
 	middleware []HandlerFunc
 	index      int
+	engine     *Engine
 }
 
 func newContext(resp http.ResponseWriter, req *http.Request) *Context {
@@ -70,6 +71,14 @@ func (c *Context) Html(code int, html string) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+func (c *Context) HTML(code int, name string, data interface{}) {
+	c.SetHeader("Content-Type", "text/html")
+	c.Status(code)
+	if err := c.engine.httpTemplate.ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.Fail(500, err.Error())
+	}
 }
 
 func (c *Context) Param(key string) string {

@@ -1,0 +1,10 @@
+<!-- templates/arr.tmpl -->
+<html>
+<link rel="stylesheet" href="http://127.0.0.1:9999/assets/css/gee.css">
+<body>
+    <p>hello, {{.title}}</p>
+    {{range $index, $ele := .stuArr }}
+    <p>{{ $index }}: {{ $ele.Name }} is {{ $ele.Age }} years old</p>
+    {{ end }}
+</body>
+</html>

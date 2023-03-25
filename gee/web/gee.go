@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 	"path"
 	"strings"
@@ -23,6 +24,9 @@ type Engine struct {
 	*RouterGroup
 	router *router
 	groups []*RouterGroup
+	//模板解析
+	httpTemplate *template.Template
+	funcMap      *template.FuncMap
 }
 
 //RouterGroup和Engine使用了双向继承,双方都可以使用彼此的属性方法
@@ -103,8 +107,17 @@ func (engine *Engine) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	//将http信息包装conext
 	conext := newContext(resp, req)
 	conext.middleware = middlewares
+	//engine
+	conext.engine = engine
 	//执行hander
 	engine.router.handle(conext)
+}
+
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
+	engine.funcMap = &funcMap
+}
+func (engine *Engine) LoadHtmlGlob(pattern string) {
+	engine.httpTemplate = template.Must(template.New("").Funcs(*engine.funcMap).ParseGlob(pattern))
 }
 
 func (engine *Engine) Run(addr string) error {
