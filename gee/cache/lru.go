@@ -21,3 +21,39 @@ type entry struct {
 type Value interface {
 	Len() int
 }
+
+func New(maxBytes int64, onEvicted func(string, Value)) *Cache {
+	return &Cache{
+		maxBytes:  maxBytes,
+		ll:        list.New(),
+		cache:     make(map[string]*list.Element),
+		OnEvicted: onEvicted,
+	}
+}
+func (c *Cache) Get(key string) (val Value, ok bool) {
+	if element, ok := c.cache[key]; ok {
+		//将val移到尾
+		c.ll.MoveToFront(element)
+		v := element.Value.(*entry)
+		return v.value, true
+	}
+	return nil, false
+}
+
+//移除淘汰结点
+func (c *Cache) RemoveOld() {
+	//从头部移除
+	element := c.ll.Back()
+	if element != nil {
+		c.ll.Remove(element)
+		kv := element.Value.(*entry)
+		//删除map
+		delete(c.cache, kv.key)
+		//减去移除的大小
+		c.nbytes -= int64(len(kv.key)) + int64(kv.value.Len())
+		if c.OnEvicted != nil {
+			c.OnEvicted(kv.key, kv.value)
+		}
+	}
+
+}
