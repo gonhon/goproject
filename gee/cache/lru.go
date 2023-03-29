@@ -3,7 +3,7 @@ package cache
 import "container/list"
 
 //规定 Front(尾)为最新的元素  Back(头)为最久未使用
-type Cache struct {
+type LruCache struct {
 	//允许使用的最大内存
 	maxBytes int64
 	//当前已使用的内存
@@ -25,15 +25,15 @@ type Value interface {
 	Len() int
 }
 
-func New(maxBytes int64, onEvicted func(string, Value)) *Cache {
-	return &Cache{
+func New(maxBytes int64, onEvicted func(string, Value)) *LruCache {
+	return &LruCache{
 		maxBytes:  maxBytes,
 		ll:        list.New(),
 		cache:     make(map[string]*list.Element),
 		OnEvicted: onEvicted,
 	}
 }
-func (c *Cache) Get(key string) (val Value, ok bool) {
+func (c *LruCache) Get(key string) (val Value, ok bool) {
 	if element, ok := c.cache[key]; ok {
 		//将val移到尾
 		c.ll.MoveToFront(element)
@@ -44,7 +44,7 @@ func (c *Cache) Get(key string) (val Value, ok bool) {
 }
 
 //移除淘汰结点
-func (c *Cache) RemoveOld() {
+func (c *LruCache) RemoveOld() {
 	//从头部移除
 	element := c.ll.Back()
 	if element != nil {
@@ -61,7 +61,7 @@ func (c *Cache) RemoveOld() {
 
 }
 
-func (c *Cache) Add(key string, val Value) {
+func (c *LruCache) Add(key string, val Value) {
 	//先检查有没有
 	if element, ok := c.cache[key]; ok {
 		c.ll.MoveToFront(element)
@@ -82,6 +82,6 @@ func (c *Cache) Add(key string, val Value) {
 	}
 }
 
-func (c *Cache) Len() int {
+func (c *LruCache) Len() int {
 	return c.ll.Len()
 }
