@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const defaultBasePath = "/cache"
+const defaultBasePath = "/cache/"
 
 type HttpPoll struct {
 	self     string
