@@ -2,6 +2,7 @@ package cache
 
 import (
 	"hash/crc32"
+	"log"
 	"sort"
 	"strconv"
 )
@@ -47,6 +48,11 @@ func (m *Map) Get(key string) string {
 	index := sort.Search(len(m.keys), func(i int) bool {
 		return m.keys[i] >= hash
 	})
-	return m.hashMap[m.keys[index&(len(m.keys)-1)]]
+	// return m.hashMap[m.keys[index&(len(m.keys)-1)]]
+	val, ok := m.hashMap[m.keys[index%len(m.keys)]]
+	if !ok {
+		log.Printf("key :%s not found", key)
+	}
+	return val
 
 }
