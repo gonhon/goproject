@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-//接口形函数
+// 接口形函数
 type Getter interface {
 	Get(key string) ([]byte, error)
 }
@@ -20,6 +20,7 @@ type Group struct {
 	name      string
 	getter    Getter
 	mainCache cache
+	peers     PeerPicker
 }
 
 var (
@@ -50,12 +51,12 @@ func GetGroup(name string) *Group {
 	return groups[name]
 }
 
-//加入元素
+// 加入元素
 func (group *Group) populateCache(key string, val ByteView) {
 	group.mainCache.Add(key, val)
 }
 
-//回调Get方法初始化缓存
+// 回调Get方法初始化缓存
 func (group *Group) getLocally(key string) (ByteView, error) {
 	bytes, err := group.getter.Get(key)
 	if err != nil {
@@ -70,7 +71,7 @@ func (group *Group) load(key string) (val ByteView, err error) {
 	return group.getLocally(key)
 }
 
-//根据key获取数据
+// Get 根据key获取数据
 func (group *Group) Get(key string) (ByteView, error) {
 	if key == "" {
 		return ByteView{}, fmt.Errorf("key is empty")
@@ -81,4 +82,11 @@ func (group *Group) Get(key string) (ByteView, error) {
 	}
 	//不存在调用Getter
 	return group.load(key)
+}
+
+func (group *Group) RegisterPeers(peers PeerPicker) {
+	if group.peers != nil {
+		panic("RegisterPeerPicker called more than once")
+	}
+	group.peers = peers
 }
