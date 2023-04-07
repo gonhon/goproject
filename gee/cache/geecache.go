@@ -2,6 +2,7 @@ package cache
 
 import (
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -89,4 +90,28 @@ func (group *Group) RegisterPeers(peers PeerPicker) {
 		panic("RegisterPeerPicker called more than once")
 	}
 	group.peers = peers
+}
+
+func (group *Group) GetFromData(fun PeerGetter, key string) (ByteView, error) {
+	bytes, err := fun.Get(group.name, key)
+	if err != nil {
+		return ByteView{}, err
+	}
+	return ByteView{
+		b: bytes,
+	}, err
+
+}
+
+func (group *Group) Load(key string) (ByteView, error) {
+	if group.peers != nil {
+		if peer, ok := group.peers.PickPeer(key); ok {
+			if data, err := group.GetFromData(peer, key); err == nil {
+				return data, err
+			} else {
+				log.Println("[Cache] Failed to get from peer", err)
+			}
+		}
+	}
+	return group.getLocally(key)
 }
