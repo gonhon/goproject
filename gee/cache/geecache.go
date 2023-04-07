@@ -92,7 +92,7 @@ func (group *Group) RegisterPeers(peers PeerPicker) {
 	group.peers = peers
 }
 
-func (group *Group) GetFromData(fun PeerGetter, key string) (ByteView, error) {
+func (group *Group) getFromData(fun PeerGetter, key string) (ByteView, error) {
 	bytes, err := fun.Get(group.name, key)
 	if err != nil {
 		return ByteView{}, err
@@ -106,7 +106,7 @@ func (group *Group) GetFromData(fun PeerGetter, key string) (ByteView, error) {
 func (group *Group) Load(key string) (ByteView, error) {
 	if group.peers != nil {
 		if peer, ok := group.peers.PickPeer(key); ok {
-			if data, err := group.GetFromData(peer, key); err == nil {
+			if data, err := group.getFromData(peer, key); err == nil {
 				return data, err
 			} else {
 				log.Println("[Cache] Failed to get from peer", err)
