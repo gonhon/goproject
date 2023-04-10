@@ -68,10 +68,6 @@ func (group *Group) getLocally(key string) (ByteView, error) {
 	return val, nil
 }
 
-func (group *Group) load(key string) (val ByteView, err error) {
-	return group.getLocally(key)
-}
-
 // Get 根据key获取数据
 func (group *Group) Get(key string) (ByteView, error) {
 	if key == "" {
@@ -82,12 +78,12 @@ func (group *Group) Get(key string) (ByteView, error) {
 		return v, nil
 	}
 	//不存在调用Getter
-	return group.load(key)
+	return group.Load(key)
 }
 
 func (group *Group) RegisterPeers(peers PeerPicker) {
 	if group.peers != nil {
-		panic("RegisterPeerPicker called more than once")
+		panic("RegisterPeers called more than once")
 	}
 	group.peers = peers
 }
