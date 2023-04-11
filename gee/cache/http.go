@@ -77,7 +77,7 @@ func (p *HttpPoll) PickPeer(key string) (PeerGetter, bool) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	if peer := p.peers.Get(key); peer != "" && peer != p.self {
-		p.Log("Pick peer %v", peer)
+		p.Log("Pick peer %s", peer)
 		return p.httpGetters[peer], true
 	}
 	return nil, false
@@ -100,9 +100,9 @@ func (h *httpGetter) Get(group, key string) ([]byte, error) {
 	defer res.Body.Close()
 
 	if bytes, err := ioutil.ReadAll(res.Body); err != nil {
-		return bytes, nil
+		return nil, fmt.Errorf("reading response body: %v", err)
 	} else {
-		return nil, err
+		return bytes, nil
 	}
 }
 
