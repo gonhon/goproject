@@ -28,7 +28,7 @@ func NewHttpPoll(self string) *HttpPoll {
 }
 
 func (p *HttpPoll) Log(format string, args ...interface{}) {
-	log.Printf("server %s: %s", p.self, fmt.Sprintf(format, args...))
+	log.Printf("[server %s ] %s", p.self, fmt.Sprintf(format, args...))
 }
 
 func (p *HttpPoll) ServeHTTP(w http.ResponseWriter, r *http.Request) {
