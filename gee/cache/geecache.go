@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"sync"
+
+	"github.com/limerence-code/goproject/gee/cache/singleflight"
 )
 
 // 接口形函数
@@ -22,6 +24,9 @@ type Group struct {
 	getter    Getter
 	mainCache cache
 	peers     PeerPicker
+
+	//lock Group
+	loader *singleflight.Group
 }
 
 var (
@@ -41,6 +46,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		name:      name,
 		getter:    getter,
 		mainCache: cache{cacheBytes: cacheBytes},
+		loader:    &singleflight.Group{},
 	}
 	groups[name] = group
 	return group
@@ -100,14 +106,18 @@ func (group *Group) getFromData(fun PeerGetter, key string) (ByteView, error) {
 }
 
 func (group *Group) Load(key string) (ByteView, error) {
-	if group.peers != nil {
-		if peer, ok := group.peers.PickPeer(key); ok {
-			if data, err := group.getFromData(peer, key); err == nil {
-				return data, err
-			} else {
-				log.Println("[Cache] Failed to get from peer", err)
+	val, err := group.loader.Do(key, func() (interface{}, error) {
+		if group.peers != nil {
+			if peer, ok := group.peers.PickPeer(key); ok {
+				//将值赋给value
+				if value, err := group.getFromData(peer, key); err == nil {
+					return value, err
+				} else {
+					log.Println("[Cache] Failed to get from peer", err)
+				}
 			}
 		}
-	}
-	return group.getLocally(key)
+		return group.getLocally(key)
+	})
+	return val.(ByteView), err
 }
