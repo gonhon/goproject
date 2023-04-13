@@ -3,10 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/limerence-code/goproject/gee/cache/base"
 	"log"
 	"net/http"
-
-	"github.com/limerence-code/goproject/gee/cache"
 )
 
 var db = map[string]string{
@@ -15,8 +14,8 @@ var db = map[string]string{
 	"Sam":  "567",
 }
 
-func createGroup() *cache.Group {
-	return cache.NewGroup("scores", 2<<10, cache.GetterFunc(func(key string) ([]byte, error) {
+func createGroup() *base.Group {
+	return base.NewGroup("scores", 2<<10, base.GetterFunc(func(key string) ([]byte, error) {
 		log.Println("db search key", key)
 		if val, ok := db[key]; ok {
 			return []byte(val), nil
@@ -27,15 +26,15 @@ func createGroup() *cache.Group {
 
 }
 
-func startCacheServer(addr string, addrs []string, group *cache.Group) {
-	poll := cache.NewHttpPoll(addr)
+func startCacheServer(addr string, addrs []string, group *base.Group) {
+	poll := base.NewHttpPoll(addr)
 	poll.Set(addrs...)
 	group.RegisterPeers(poll)
 	log.Println("cache is run ...", addr)
 	log.Fatal(http.ListenAndServe(addr[7:], poll))
 }
 
-func startApiServer(apiAddr string, group *cache.Group) {
+func startApiServer(apiAddr string, group *base.Group) {
 	http.Handle("/api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := r.URL.Query().Get("key")
 		view, err := group.Get(key)

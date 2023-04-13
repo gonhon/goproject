@@ -1,12 +1,11 @@
-package cache
+package base
 
 import (
 	"fmt"
-	"log"
-	"sync"
-
 	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
 	"github.com/limerence-code/goproject/gee/cache/singleflight"
+	"log"
+	"sync"
 )
 
 // 接口形函数

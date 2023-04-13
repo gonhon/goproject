@@ -1,6 +1,6 @@
-package cache
+package base
 
-//存储缓存值
+// 存储缓存值
 type ByteView struct {
 	b []byte
 }

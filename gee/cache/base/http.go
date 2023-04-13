@@ -1,7 +1,8 @@
-package cache
+package base
 
 import (
 	"fmt"
+	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"sync"
 
-	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
 	"google.golang.org/protobuf/proto"
 )
 

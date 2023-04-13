@@ -1,8 +1,8 @@
-package cache
+package base
 
 import "container/list"
 
-//规定 Front(尾)为最新的元素  Back(头)为最久未使用
+// 规定 Front(尾)为最新的元素  Back(头)为最久未使用
 type LruCache struct {
 	//允许使用的最大内存
 	maxBytes int64
@@ -43,7 +43,7 @@ func (c *LruCache) Get(key string) (val Value, ok bool) {
 	return nil, false
 }
 
-//移除淘汰结点
+// 移除淘汰结点
 func (c *LruCache) RemoveOld() {
 	//从头部移除
 	element := c.ll.Back()
