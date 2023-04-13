@@ -60,6 +60,7 @@ func (p *HttpPoll) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//使用proto传输
 	body, err := proto.Marshal(&pb.Response{Value: view.ByteSlice()})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -102,7 +103,7 @@ type httpGetter struct {
 }
 
 func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
-	u := fmt.Sprintf("%v%v/%v", h.baseUrl, url.QueryEscape(in.Group), url.QueryEscape(in.GetKey()))
+	u := fmt.Sprintf("%v%v/%v", h.baseUrl, url.QueryEscape(in.GetGroup()), url.QueryEscape(in.GetKey()))
 
 	res, err := http.Get(u)
 	if err != nil {
@@ -114,7 +115,8 @@ func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
 		return fmt.Errorf("reading response body: %v", err)
 	}
 
-	if err = proto.Unmarshal(bytes, in); err != nil {
+	//解析proto
+	if err = proto.Unmarshal(bytes, out); err != nil {
 		return fmt.Errorf("decoding response body: %v", err)
 	}
 	return nil
