@@ -8,6 +8,9 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+
+	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -56,9 +59,16 @@ func (p *HttpPoll) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	body, err := proto.Marshal(&pb.Response{Value: view.ByteSlice()})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	//写出文件
 	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Write(view.ByteSlice())
+	w.Write(body)
 }
 
 func (p *HttpPoll) Set(peers ...string) {
@@ -91,19 +101,23 @@ type httpGetter struct {
 	baseUrl string
 }
 
-func (h *httpGetter) Get(group, key string) ([]byte, error) {
-	u := fmt.Sprintf("%v%v/%v", h.baseUrl, url.QueryEscape(group), url.QueryEscape(key))
+func (h *httpGetter) Get(in *pb.Request, out *pb.Response) error {
+	u := fmt.Sprintf("%v%v/%v", h.baseUrl, url.QueryEscape(in.Group), url.QueryEscape(in.GetKey()))
+
 	res, err := http.Get(u)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer res.Body.Close()
-
-	if bytes, err := ioutil.ReadAll(res.Body); err != nil {
-		return nil, fmt.Errorf("reading response body: %v", err)
-	} else {
-		return bytes, nil
+	bytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return fmt.Errorf("reading response body: %v", err)
 	}
+
+	if err = proto.Unmarshal(bytes, in); err != nil {
+		return fmt.Errorf("decoding response body: %v", err)
+	}
+	return nil
 }
 
 // 确保这个类型实现了这个接口 如果没有实现会报错的

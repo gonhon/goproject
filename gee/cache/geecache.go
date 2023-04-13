@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
 	"github.com/limerence-code/goproject/gee/cache/singleflight"
 )
 
@@ -95,12 +96,19 @@ func (group *Group) RegisterPeers(peers PeerPicker) {
 }
 
 func (group *Group) getFromData(fun PeerGetter, key string) (ByteView, error) {
-	bytes, err := fun.Get(group.name, key)
+
+	req := &pb.Request{
+		Group: group.name,
+		Key:   key,
+	}
+	res := &pb.Response{}
+
+	err := fun.Get(req, res)
 	if err != nil {
 		return ByteView{}, err
 	}
 	return ByteView{
-		b: bytes,
+		b: res.Value,
 	}, err
 
 }

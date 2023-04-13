@@ -30,3 +30,13 @@ go test -v -run TestXXX$
 **-v      显示详细的流程**
 
 **-run  支持正则表达式  TestXXX$  只执行TestXXX函数**
+
+
+
+## grpc
+
+需要安装 **protoc** 和 **protoc-gen-go**
+
+```shell
+ protoc --go_out=. *.proto
+```
