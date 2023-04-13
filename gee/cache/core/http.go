@@ -2,13 +2,14 @@ package core
 
 import (
 	"fmt"
-	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
+
+	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -76,9 +77,11 @@ func (p *HttpPoll) Set(peers ...string) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	p.peers = NewMap(defaultReplicas, nil)
+	//通过一致性hash维护虚拟地址结点
 	p.peers.Add(peers...)
 	p.httpGetters = make(map[string]*httpGetter, len(peers))
 
+	//将地址信息放入httpGetters中
 	for _, peer := range peers {
 		p.httpGetters[peer] = &httpGetter{baseUrl: peer + p.basePath}
 	}

@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/limerence-code/goproject/gee/cache/core"
 	"log"
 	"net/http"
+
+	"github.com/limerence-code/goproject/gee/cache/core"
 )
 
 var db = map[string]string{
@@ -14,6 +15,7 @@ var db = map[string]string{
 	"Sam":  "567",
 }
 
+//创建缓存组
 func createGroup() *core.Group {
 	return core.NewGroup("scores", 2<<10, core.GetterFunc(func(key string) ([]byte, error) {
 		log.Println("db search key", key)
@@ -26,6 +28,7 @@ func createGroup() *core.Group {
 
 }
 
+//启动缓存服务:addr 当前结点地址  addrs 所有结点地址
 func startCacheServer(addr string, addrs []string, group *core.Group) {
 	poll := core.NewHttpPoll(addr)
 	poll.Set(addrs...)
