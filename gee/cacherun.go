@@ -53,8 +53,8 @@ func startApiServer(apiAddr string, group *cache.Group) {
 func main() {
 	var port int
 	var api bool
-	flag.IntVar(&port, "port", 8001, "cache server port")
-	flag.BoolVar(&api, "api", false, "Start a api server?")
+	flag.IntVar(&port, "port", 8003, "cache server port")
+	flag.BoolVar(&api, "api", true, "Start a api server?")
 	flag.Parse()
 
 	apiAddr := "http://localhost:9999"
