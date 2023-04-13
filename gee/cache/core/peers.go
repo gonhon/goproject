@@ -1,4 +1,4 @@
-package base
+package core
 
 import (
 	pb "github.com/limerence-code/goproject/gee/cache/cachepb"
