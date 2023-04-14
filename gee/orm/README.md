@@ -4,8 +4,24 @@
  * @LastEditTime: 2023-04-14 00:01:11
 -->
 
-sqllite安装
+# Orm
+
+## sqllite安装
+
 https://www.runoob.com/sqlite/sqlite-installation.html
+
+
+
+## wsl
+
+```shell
+apt-get install sqlite3
+
+cd /mnt/d/project/go_project/goproject
+```
+
+
+
 
 ```shell
 # 进入gee库
