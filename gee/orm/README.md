@@ -10,18 +10,17 @@
 
 https://www.runoob.com/sqlite/sqlite-installation.html
 
-
-
 ## wsl
 
 ```shell
 apt-get install sqlite3
 
 cd /mnt/d/project/go_project/goproject
+
+
+# cygwin 添加 MinGW-64 gcc 安装修改 go env CC
+go env -w 
 ```
-
-
-
 
 ```shell
 # 进入gee库
