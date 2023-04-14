@@ -18,8 +18,6 @@ apt-get install sqlite3
 cd /mnt/d/project/go_project/goproject
 
 
-# cygwin 添加 MinGW-64 gcc 安装修改 go env CC
-go env -w 
 ```
 
 ```shell
@@ -38,4 +36,10 @@ go env -w
 
 # 查看表结构
  .schema User
+```
+
+## cygwin
+
+```shell
+
 ```
