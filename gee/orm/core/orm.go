@@ -2,13 +2,16 @@ package core
 
 import (
 	"database/sql"
+	"fmt"
 
+	"github.com/limerence-code/goproject/gee/orm/dialect"
 	"github.com/limerence-code/goproject/gee/orm/log"
 	"github.com/limerence-code/goproject/gee/orm/session"
 )
 
 type Engine struct {
-	db *sql.DB
+	db      *sql.DB
+	dialect dialect.Dialect
 }
 
 func NewEngine(driver, source string) (*Engine, error) {
@@ -22,7 +25,14 @@ func NewEngine(driver, source string) (*Engine, error) {
 		log.Error(err)
 		return nil, err
 	}
-	engine := &Engine{db: db}
+
+	dail, ok := dialect.GetDialect(driver)
+	if !ok {
+		log.Errorf("dialect %s Not Found", driver)
+		return nil, fmt.Errorf("dialect %s Not Found", driver)
+	}
+
+	engine := &Engine{db: db, dialect: dail}
 	log.Info("connection db success")
 	return engine, nil
 }
@@ -37,6 +47,5 @@ func (engine *Engine) Close() error {
 }
 
 func (engine *Engine) NewSession() (*session.Session, error) {
-	// return sessio.NewSession(engine.db)
-	return session.New(engine.db), nil
+	return session.New(engine.db, engine.dialect), nil
 }
