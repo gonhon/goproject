@@ -7,7 +7,7 @@ import (
 	"github.com/limerence-code/goproject/gee/orm/dialect"
 )
 
-//字段信息
+// 字段信息
 type Field struct {
 	Name string
 	Type string
@@ -51,4 +51,14 @@ func Parse(dest interface{}, d dialect.Dialect) *Schema {
 		}
 	}
 	return schema
+}
+
+func (schema *Schema) RecordValues(dest interface{}) []interface{} {
+	value := reflect.Indirect(reflect.ValueOf(dest))
+	var fieldValues []interface{}
+
+	for _, field := range schema.Fields {
+		fieldValues = append(fieldValues, value.FieldByName(field.Name).Interface())
+	}
+	return fieldValues
 }
