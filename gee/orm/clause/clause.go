@@ -5,7 +5,9 @@ import "strings"
 type Type int
 
 type Clause struct {
-	sql     map[Type]string
+	//存储sql
+	sql map[Type]string
+	//存储sql与编译后代替换的值
 	sqlVars map[Type][]interface{}
 }
 
