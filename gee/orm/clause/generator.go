@@ -34,7 +34,7 @@ func _insert(vals ...interface{}) (string, []interface{}) {
 	tableName := vals[0]
 	//将字符串数组按照,连接
 	fields := strings.Join(vals[1].([]string), ",")
-	return fmt.Sprintf("INSERT INFO %s (%v)", tableName, fields), []interface{}{}
+	return fmt.Sprintf("INSERT INTO %s (%v)", tableName, fields), []interface{}{}
 }
 
 // VALUES ($v1), ($v2), ...

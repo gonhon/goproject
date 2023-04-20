@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/limerence-code/goproject/gee/orm/dialect"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
