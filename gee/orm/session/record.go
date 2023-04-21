@@ -26,14 +26,14 @@ func (s *Session) Insert(values ...interface{}) (int64, error) {
 	return res.RowsAffected()
 }
 
-func (s *Session) Find(values ...interface{}) error {
+func (s *Session) Find(values interface{}) error {
 	destSlice := reflect.Indirect(reflect.ValueOf(values))
 	destType := destSlice.Type().Elem()
 	tab := s.Model(reflect.New(destType).Elem().Interface()).RefTable()
 
 	s.clause.Set(clause.SELECT, tab.Name, tab.FieldNames)
 	sql, vars := s.clause.Build(clause.SELECT, clause.WHERE, clause.OERDERBY, clause.LIMIT)
-	rows, err := s.Raw(sql, vars).QueryRows()
+	rows, err := s.Raw(sql, vars...).QueryRows()
 	if err != nil {
 		return err
 	}
