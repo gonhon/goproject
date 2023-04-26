@@ -18,6 +18,9 @@ const (
 	LIMIT
 	WHERE
 	OERDERBY
+	UPDATE
+	DELETE
+	COUNT
 )
 
 func (c *Clause) Set(name Type, values ...interface{}) {

@@ -1,6 +1,7 @@
 package session
 
 import (
+	"errors"
 	"reflect"
 
 	"github.com/limerence-code/goproject/gee/orm/clause"
@@ -51,4 +52,72 @@ func (s *Session) Find(values interface{}) error {
 
 	}
 	return rows.Close()
+}
+
+func (s *Session) Update(kv ...interface{}) (int64, error) {
+	m, ok := kv[0].(map[string]interface{})
+	if !ok {
+		m = make(map[string]interface{})
+		for i := 0; i < len(kv); i += 2 {
+			m[kv[i].(string)] = kv[i+i]
+		}
+	}
+	s.clause.Set(clause.UPDATE, s.refTable.Name, m)
+	sql, vals := s.clause.Build(clause.UPDATE, clause.WHERE)
+	res, err := s.Raw(sql, vals...).Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func (s *Session) Delete() (int64, error) {
+	s.clause.Set(clause.DELETE, s.refTable.Name)
+	sql, vals := s.clause.Build(clause.UPDATE, clause.WHERE)
+	res, err := s.Raw(sql, vals...).Exec()
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+func (s *Session) Count() (int64, error) {
+	s.clause.Set(clause.COUNT, s.refTable.Name)
+	sql, vals := s.clause.Build(clause.COUNT, clause.WHERE)
+	row := s.Raw(sql, vals...).QueryRow()
+	var count int64
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (s *Session) Limit(num int) *Session {
+	s.clause.Set(clause.LIMIT, num)
+	return s
+}
+
+func (s *Session) Where(desc string, args ...interface{}) *Session {
+	var vars []interface{}
+	s.clause.Set(clause.WHERE, append(append(vars, desc), args...)...)
+	return s
+}
+
+func (s *Session) OrderBy(desc string) *Session {
+	s.clause.Set(clause.OERDERBY, desc)
+	return s
+}
+
+func (s *Session) First(vals interface{}) error {
+
+	dest := reflect.Indirect(reflect.ValueOf(vals))
+	destSlice := reflect.New(reflect.SliceOf(dest.Type())).Elem()
+	if err := s.Limit(1).Find(destSlice.Addr().Interface()); err != nil {
+		return err
+	}
+	if destSlice.Len() == 0 {
+		return errors.New("Not Found")
+	}
+	dest.Set(destSlice.Index(0))
+	return nil
 }
