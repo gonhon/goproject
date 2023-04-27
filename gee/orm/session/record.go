@@ -59,7 +59,7 @@ func (s *Session) Update(kv ...interface{}) (int64, error) {
 	if !ok {
 		m = make(map[string]interface{})
 		for i := 0; i < len(kv); i += 2 {
-			m[kv[i].(string)] = kv[i+i]
+			m[kv[i].(string)] = kv[i+1]
 		}
 	}
 	s.clause.Set(clause.UPDATE, s.refTable.Name, m)
