@@ -10,6 +10,7 @@ import (
 func (s *Session) Insert(values ...interface{}) (int64, error) {
 	recordVars := make([]interface{}, 0)
 	for _, val := range values {
+		s.CallMethod(BeforeInsert, val)
 		tab := s.Model(val).RefTable()
 		//insert
 		s.clause.Set(clause.INSERT, tab.Name, tab.FieldNames)
@@ -21,6 +22,7 @@ func (s *Session) Insert(values ...interface{}) (int64, error) {
 	sql, vars := s.clause.Build(clause.INSERT, clause.VALUES)
 	//执行sql
 	res, err := s.Raw(sql, vars...).Exec()
+	s.CallMethod(AfterInsert, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -28,6 +30,8 @@ func (s *Session) Insert(values ...interface{}) (int64, error) {
 }
 
 func (s *Session) Find(values interface{}) error {
+	s.CallMethod(BeforeQuery, nil)
+
 	destSlice := reflect.Indirect(reflect.ValueOf(values))
 	destType := destSlice.Type().Elem()
 	tab := s.Model(reflect.New(destType).Elem().Interface()).RefTable()
@@ -45,16 +49,18 @@ func (s *Session) Find(values interface{}) error {
 			values = append(values, dest.FieldByName(name).Addr().Interface())
 		}
 
-		if err := rows.Scan(values...); err != nil {
+		err := rows.Scan(values...)
+		s.CallMethod(AfterQuery, dest.Addr().Interface())
+		if err != nil {
 			return err
 		}
 		destSlice.Set(reflect.Append(destSlice, dest))
-
 	}
 	return rows.Close()
 }
 
 func (s *Session) Update(kv ...interface{}) (int64, error) {
+	s.CallMethod(BeforeUpdate, nil)
 	m, ok := kv[0].(map[string]interface{})
 	if !ok {
 		m = make(map[string]interface{})
@@ -65,6 +71,7 @@ func (s *Session) Update(kv ...interface{}) (int64, error) {
 	s.clause.Set(clause.UPDATE, s.refTable.Name, m)
 	sql, vals := s.clause.Build(clause.UPDATE, clause.WHERE)
 	res, err := s.Raw(sql, vals...).Exec()
+	s.CallMethod(AfterUpdate, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -72,9 +79,11 @@ func (s *Session) Update(kv ...interface{}) (int64, error) {
 }
 
 func (s *Session) Delete() (int64, error) {
+	s.CallMethod(BeforeDelete, nil)
 	s.clause.Set(clause.DELETE, s.refTable.Name)
 	sql, vals := s.clause.Build(clause.UPDATE, clause.WHERE)
 	res, err := s.Raw(sql, vals...).Exec()
+	s.CallMethod(AfterDelete, nil)
 	if err != nil {
 		return 0, err
 	}
