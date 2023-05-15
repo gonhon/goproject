@@ -49,3 +49,25 @@ func (engine *Engine) Close() error {
 func (engine *Engine) NewSession() (*session.Session, error) {
 	return session.New(engine.db, engine.dialect), nil
 }
+
+//----------------------事务----------------------
+type TxFunc func(s *session.Session) (interface{}, error)
+
+func (engine *Engine) Transaction(f TxFunc) (res interface{}, err error) {
+	s, _ := engine.NewSession()
+	if err = s.Begin(); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			s.RollBack()
+			panic(p)
+		} else if err != nil {
+			s.RollBack()
+		} else {
+			s.Commit()
+		}
+	}()
+	return f(s)
+}
