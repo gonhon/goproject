@@ -1,14 +1,17 @@
 /*
  * @Author: gaoh
  * @Date: 2023-05-22 23:25:09
- * @LastEditTime: 2023-05-22 23:51:32
+ * @LastEditTime: 2023-05-23 23:54:44
  */
 package rpc
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
+	"net"
 	"sync"
 
 	"github.com/limerence-code/goproject/gee/rpc/codec"
@@ -107,4 +110,142 @@ func (client *Client) terminalCalls(err error) {
 		call.Error = err
 		call.done()
 	}
+}
+
+func (client *Client) receive() {
+	var err error
+	for err == nil {
+		var h codec.Header
+		if err = client.cc.ReadHeader(&h); err != nil {
+			break
+		}
+		call := client.removeCall(h.Seq)
+		switch {
+		//call 不存在
+		case call == nil:
+			err = client.cc.ReadBody(nil)
+		//call 存在，但服务端处理出错
+		case h.Error != "":
+			call.Error = fmt.Errorf(h.Error)
+			err = client.cc.ReadBody(nil)
+			call.done()
+		default:
+			err = client.cc.ReadBody(call.Reply)
+			if err != nil {
+				call.Error = errors.New("reding body error: " + err.Error())
+			}
+			call.done()
+		}
+	}
+	client.terminalCalls(err)
+}
+
+//创建 Client 实例时，首先需要完成一开始的协议交换，即发送 Option 信息给服务端。
+//协商好消息的编解码方式之后，再创建一个子协程调用 receive() 接收响应
+func NewClient(conn net.Conn, opt *Option) (client *Client, err error) {
+	f := codec.NewCodeFuncMap[opt.CodecType]
+	if f != nil {
+		err = fmt.Errorf("invalid codec type %s", opt.CodecType)
+		log.Println("rpc client code error:", err)
+		return
+	}
+	if err = json.NewEncoder(conn).Encode(opt); err != nil {
+		log.Println("rpc client options error:", err)
+		return
+	}
+	return newClientCodec(f(conn), opt), nil
+}
+
+func newClientCodec(cc codec.Codec, opt *Option) *Client {
+	client := &Client{
+		seq:     1,
+		cc:      cc,
+		opt:     opt,
+		pending: make(map[uint64]*Call),
+	}
+	go client.receive()
+	return client
+}
+
+func parseOptions(opts ...*Option) (*Option, error) {
+	if len(opts) == 0 || opts[0] == nil {
+		//使用默认的
+		return DefaultOption, nil
+	}
+	if len(opts) != 1 {
+		return nil, errors.New("number of options is more than one")
+	}
+	opt := opts[0]
+	opt.MagicNumber = DefaultOption.MagicNumber
+	if opt.CodecType == "" {
+		opt.CodecType = DefaultOption.CodecType
+	}
+	return opt, nil
+}
+
+func Dial(network, address string, opts ...*Option) (client *Client, err error) {
+	opt, err := parseOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+	conn, err := net.Dial(network, address)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if client == nil {
+			conn.Close()
+		}
+	}()
+
+	return NewClient(conn, opt)
+}
+
+//发送请求
+func (client *Client) send(call *Call) {
+	client.sending.Lock()
+	defer client.sending.Lock()
+	seq, err := client.registerCall(call)
+	if err != nil {
+		call.Error = err
+		call.done()
+		return
+	}
+
+	client.header.ServiceMethod = call.ServiceMethod
+	client.header.Seq = call.Seq
+	client.header.Error = ""
+
+	if err := client.cc.Write(&client.header, call.Args); err != nil {
+		call := client.removeCall(seq)
+		if call != nil {
+			call.Error = err
+			call.done()
+		}
+	}
+}
+
+//Go 和 Call 是客户端暴露给用户的两个 RPC 服务调用接口，Go 是一个异步接口，返回 call 实例。
+//Call 是对 Go 的封装，阻塞 call.Done，等待响应返回，是一个同步接口。
+func (client *Client) Go(serviceMethod string, args, reply interface{}, done chan *Call) *Call {
+	if done == nil {
+		done = make(chan *Call)
+
+	} else if cap(done) == 0 {
+		log.Panic("rpc client done channel is unbuffered")
+	}
+	call := &Call{
+		ServiceMethod: serviceMethod,
+		Args:          args,
+		Reply:         reply,
+		Done:          done,
+	}
+	client.send(call)
+	return call
+}
+
+func (client *Client) Call(serviceMethod string, args, reply interface{}) error {
+	call := <-client.Go(serviceMethod, args, reply, make(chan *Call, 1)).Done
+	return call.Error
 }
