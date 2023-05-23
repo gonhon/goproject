@@ -24,7 +24,7 @@ type Call struct {
 	Done          chan *Call
 }
 
-//支持异步调用 通知回调
+// 支持异步调用 通知回调
 func (call *Call) done() {
 	call.Done <- call
 }
@@ -62,7 +62,13 @@ func (client *Client) Close() error {
 	return client.cc.Close()
 }
 
-//将参数 call 添加到 client.pending 中，并更新 client.seq
+func (client *Client) IsAvailable() bool {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
+	return !client.closing && !client.shutdown
+}
+
+// 将参数 call 添加到 client.pending 中，并更新 client.seq
 func (client *Client) registerCall(call *Call) (uint64, error) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
@@ -75,7 +81,7 @@ func (client *Client) registerCall(call *Call) (uint64, error) {
 	return client.seq, nil
 }
 
-//根据 seq，从 client.pending 中移除对应的 call，并返回
+// 根据 seq，从 client.pending 中移除对应的 call，并返回
 func (client *Client) removeCall(seq uint64) *Call {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
@@ -88,7 +94,7 @@ func (client *Client) removeCall(seq uint64) *Call {
 	return nil
 }
 
-//服务端或客户端发生错误时调用，将 shutdown 设置为 true，且将错误信息通知所有 pending 状态的 call
+// 服务端或客户端发生错误时调用，将 shutdown 设置为 true，且将错误信息通知所有 pending 状态的 call
 func (client *Client) terminalCalls(err error) {
 	client.sending.Lock()
 	defer client.sending.Unlock()
