@@ -81,7 +81,7 @@ func (client *Client) registerCall(call *Call) (uint64, error) {
 	call.Seq = client.seq
 	client.pending[call.Seq] = call
 	client.seq++
-	return client.seq, nil
+	return call.Seq, nil
 }
 
 // 根据 seq，从 client.pending 中移除对应的 call，并返回
@@ -140,18 +140,19 @@ func (client *Client) receive() {
 	client.terminalCalls(err)
 }
 
-//创建 Client 实例时，首先需要完成一开始的协议交换，即发送 Option 信息给服务端。
-//协商好消息的编解码方式之后，再创建一个子协程调用 receive() 接收响应
-func NewClient(conn net.Conn, opt *Option) (client *Client, err error) {
+// 创建 Client 实例时，首先需要完成一开始的协议交换，即发送 Option 信息给服务端。
+// 协商好消息的编解码方式之后，再创建一个子协程调用 receive() 接收响应
+func NewClient(conn net.Conn, opt *Option) (*Client, error) {
 	f := codec.NewCodeFuncMap[opt.CodecType]
-	if f != nil {
-		err = fmt.Errorf("invalid codec type %s", opt.CodecType)
+	if f == nil {
+		err := fmt.Errorf("invalid codec type %s", opt.CodecType)
 		log.Println("rpc client code error:", err)
-		return
+		return nil, err
 	}
-	if err = json.NewEncoder(conn).Encode(opt); err != nil {
+	if err := json.NewEncoder(conn).Encode(opt); err != nil {
 		log.Println("rpc client options error:", err)
-		return
+		conn.Close()
+		return nil, err
 	}
 	return newClientCodec(f(conn), opt), nil
 }
@@ -202,10 +203,11 @@ func Dial(network, address string, opts ...*Option) (client *Client, err error) 
 	return NewClient(conn, opt)
 }
 
-//发送请求
+// 发送请求
 func (client *Client) send(call *Call) {
 	client.sending.Lock()
 	defer client.sending.Lock()
+
 	seq, err := client.registerCall(call)
 	if err != nil {
 		call.Error = err
@@ -214,7 +216,7 @@ func (client *Client) send(call *Call) {
 	}
 
 	client.header.ServiceMethod = call.ServiceMethod
-	client.header.Seq = call.Seq
+	client.header.Seq = seq
 	client.header.Error = ""
 
 	if err := client.cc.Write(&client.header, call.Args); err != nil {
@@ -226,11 +228,11 @@ func (client *Client) send(call *Call) {
 	}
 }
 
-//Go 和 Call 是客户端暴露给用户的两个 RPC 服务调用接口，Go 是一个异步接口，返回 call 实例。
-//Call 是对 Go 的封装，阻塞 call.Done，等待响应返回，是一个同步接口。
+// Go 和 Call 是客户端暴露给用户的两个 RPC 服务调用接口，Go 是一个异步接口，返回 call 实例。
+// Call 是对 Go 的封装，阻塞 call.Done，等待响应返回，是一个同步接口。
 func (client *Client) Go(serviceMethod string, args, reply interface{}, done chan *Call) *Call {
 	if done == nil {
-		done = make(chan *Call)
+		done = make(chan *Call, 10)
 
 	} else if cap(done) == 0 {
 		log.Panic("rpc client done channel is unbuffered")

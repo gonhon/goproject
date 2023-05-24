@@ -35,9 +35,9 @@ func main() {
 
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
-		go func(i int) {
+		go func(index int) {
 			defer wg.Done()
-			args := fmt.Sprintf("rpc req %d", i)
+			args := fmt.Sprintf("rpc req %d", index)
 			var reply string
 			if err := client.Call("Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum error:", err)
