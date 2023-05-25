@@ -31,9 +31,9 @@ const (
 	JsonType Type = "application/json"
 )
 
-var NewCodeFuncMap map[Type]NewCodeFunc
+var NewCodecFuncMap map[Type]NewCodeFunc
 
 func init() {
-	NewCodeFuncMap = make(map[Type]NewCodeFunc)
-	NewCodeFuncMap[GobType] = NewGobCodec
+	NewCodecFuncMap = make(map[Type]NewCodeFunc)
+	NewCodecFuncMap[GobType] = NewGobCodec
 }

@@ -61,7 +61,7 @@ func (server *Server) ServerConn(conn net.Conn) {
 		log.Printf("rpc server invalid MagicNumber %x", opt.MagicNumber)
 		return
 	}
-	f, ok := codec.NewCodeFuncMap[opt.CodecType]
+	f, ok := codec.NewCodecFuncMap[opt.CodecType]
 	if !ok {
 		log.Printf("rpc server invalid CodecType %s", opt.CodecType)
 		return
@@ -94,13 +94,13 @@ func (server *Server) serverCodec(c codec.Codec) {
 
 }
 
-//---------------------serverCodec:读取、处理、回复---------------------
+// ---------------------serverCodec:读取、处理、回复---------------------
 type request struct {
 	h            *codec.Header
 	argv, replyv reflect.Value
 }
 
-//读取数据
+// 读取数据
 func (server *Server) readRequest(c codec.Codec) (*request, error) {
 	h, err := server.readRequestHeader(c)
 	if err != nil {
@@ -117,7 +117,7 @@ func (server *Server) readRequest(c codec.Codec) (*request, error) {
 	return req, nil
 }
 
-//获取head信息
+// 获取head信息
 func (server *Server) readRequestHeader(c codec.Codec) (*codec.Header, error) {
 	var h codec.Header
 	if err := c.ReadHeader(&h); err != nil {
@@ -129,7 +129,7 @@ func (server *Server) readRequestHeader(c codec.Codec) (*codec.Header, error) {
 	return &h, nil
 }
 
-//数据响应
+// 数据响应
 func (server *Server) sendResponse(c codec.Codec, h *codec.Header, body interface{}, sending *sync.Mutex) {
 	sending.Lock()
 	defer sending.Unlock()
@@ -139,7 +139,7 @@ func (server *Server) sendResponse(c codec.Codec, h *codec.Header, body interfac
 	}
 }
 
-//数据处理
+// 数据处理
 func (server *Server) handleRequest(c codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup) {
 	defer wg.Done()
 	log.Println(req.h, req.argv.Elem())
