@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -10,7 +9,21 @@ import (
 	"github.com/limerence-code/goproject/gee/rpc"
 )
 
+type Foo int
+
+type Args struct{ Num1, Num2 int }
+
+func (f Foo) Sum(args Args, reply *int) error {
+	*reply = args.Num1 + args.Num2
+	return nil
+}
+
 func startServer(addr chan string) {
+	var foo Foo
+	if err := rpc.Register(&foo); err != nil {
+		log.Fatal("register error:", err)
+	}
+
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
 		log.Fatal("network error: ", err)
@@ -37,14 +50,13 @@ func main() {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			args := fmt.Sprintf("rpc req %d", index)
-			var reply string
+			args := &Args{Num1: index, Num2: index * index}
+			var reply int
 			if err := client.Call("Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum error:", err)
 			}
-			log.Println("reply:", reply)
+			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
 		}(i)
-
 	}
 	wg.Wait()
 }
