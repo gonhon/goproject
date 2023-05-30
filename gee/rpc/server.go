@@ -3,14 +3,14 @@ package rpc
 import (
 	"encoding/json"
 	"errors"
-	"go/ast"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"reflect"
 	"strings"
 	"sync"
-	"sync/atomic"
+	"time"
 
 	"github.com/limerence-code/goproject/gee/rpc/codec"
 )
@@ -18,13 +18,16 @@ import (
 const MagicNumber = 0x3bef5c
 
 type Option struct {
-	MagicNumber int
-	CodecType   codec.Type
+	MagicNumber    int
+	CodecType      codec.Type
+	ConnectTimeout time.Duration
+	HandleTimeout  time.Duration
 }
 
 var DefaultOption = &Option{
-	MagicNumber: MagicNumber,
-	CodecType:   codec.GobType,
+	MagicNumber:    MagicNumber,
+	CodecType:      codec.GobType,
+	ConnectTimeout: time.Second * 10,
 }
 
 type Server struct {
@@ -71,13 +74,13 @@ func (server *Server) ServerConn(conn net.Conn) {
 		log.Printf("rpc server invalid CodecType %s", opt.CodecType)
 		return
 	}
-	server.serverCodec(f(conn))
+	server.serverCodec(f(conn), &opt)
 
 }
 
 var invalidRequest = struct{}{}
 
-func (server *Server) serverCodec(c codec.Codec) {
+func (server *Server) serverCodec(c codec.Codec, opt *Option) {
 	//TODO
 	sending := new(sync.Mutex)
 	wg := new(sync.WaitGroup)
@@ -92,7 +95,7 @@ func (server *Server) serverCodec(c codec.Codec) {
 			continue
 		}
 		wg.Add(1)
-		go server.handleRequest(c, req, sending, wg)
+		go server.handleRequest(c, req, sending, wg, opt.HandleTimeout)
 	}
 	wg.Wait()
 	c.Close()
@@ -160,19 +163,37 @@ func (server *Server) sendResponse(c codec.Codec, h *codec.Header, body interfac
 }
 
 // 数据处理
-func (server *Server) handleRequest(c codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup) {
+func (server *Server) handleRequest(c codec.Codec, req *request, sending *sync.Mutex, wg *sync.WaitGroup, timeout time.Duration) {
 	defer wg.Done()
 
-	err := req.svc.call(req.mtype, req.argv, req.replyv)
-	if err != nil {
-		req.h.Error = err.Error()
-		server.sendResponse(c, req.h, invalidRequest, sending)
+	callChan := make(chan struct{})
+	sendChan := make(chan struct{})
+	go func() {
+		err := req.svc.call(req.mtype, req.argv, req.replyv)
+		callChan <- struct{}{}
+		//异常
+		if err != nil {
+			req.h.Error = err.Error()
+			server.sendResponse(c, req.h, invalidRequest, sending)
+			sendChan <- struct{}{}
+			return
+		}
+		server.sendResponse(c, req.h, req.replyv.Interface(), sending)
+		sendChan <- struct{}{}
+	}()
+
+	if timeout == 0 {
+		<-callChan
+		<-sendChan
 		return
 	}
-
-	// log.Println(req.h, req.argv.Elem())
-
-	server.sendResponse(c, req.h, req.replyv.Interface(), sending)
+	select {
+	case <-time.After(timeout):
+		req.h.Error = fmt.Sprintf("rpc server: request handle timeout: expect within %s", timeout)
+		server.sendResponse(c, req.h, invalidRequest, sending)
+	case <-callChan:
+		<-sendChan
+	}
 }
 
 //注册服务到map
@@ -205,102 +226,4 @@ func (server *Server) findService(serviceMethod string) (svc *service, mtype *me
 
 func Register(rcvr interface{}) error {
 	return DefaultServer.Regisert(rcvr)
-}
-
-type methedType struct {
-	method    reflect.Method
-	ArgType   reflect.Type
-	ReplyType reflect.Type
-	numCalls  uint64
-}
-
-func (m *methedType) NumCalls() uint64 {
-	return atomic.LoadUint64(&m.numCalls)
-}
-
-func (m *methedType) newArgv() reflect.Value {
-	var argv reflect.Value
-	//指针类型
-	if m.ArgType.Kind() == reflect.Ptr {
-		argv = reflect.New(m.ArgType.Elem())
-	} else {
-		//值类型
-		argv = reflect.New(m.ArgType).Elem()
-	}
-	return argv
-}
-func (m *methedType) newReplyv() reflect.Value {
-	replyv := reflect.New(m.ReplyType.Elem())
-	switch m.ReplyType.Elem().Kind() {
-	case reflect.Map:
-		replyv.Elem().Set(reflect.MakeMap(m.ReplyType.Elem()))
-	case reflect.Slice:
-		replyv.Elem().Set(reflect.MakeSlice(m.ReplyType.Elem(), 0, 0))
-	}
-	return replyv
-}
-
-type service struct {
-	//映射的结构体的名称
-	name string
-	//结构体的类型
-	typ reflect.Type
-	//结构体的实例本身
-	rcvr reflect.Value
-	//结构体的所有符合条件的方法
-	method map[string]*methedType
-}
-
-func newService(rcvr interface{}) *service {
-	s := new(service)
-
-	s.rcvr = reflect.ValueOf(rcvr)
-	s.name = reflect.Indirect(s.rcvr).Type().Name()
-	s.typ = reflect.TypeOf(rcvr)
-	if !ast.IsExported(s.name) {
-		log.Fatalf("rpc server: %s is not a valid service name", s.name)
-	}
-	s.registerMethods()
-
-	return s
-
-}
-func (s *service) registerMethods() {
-	s.method = make(map[string]*methedType)
-	for i := 0; i < s.typ.NumMethod(); i++ {
-		method := s.typ.Method(i)
-		mType := method.Type
-		if mType.NumIn() != 3 || mType.NumOut() != 1 {
-			continue
-		}
-		if mType.Out(0) != reflect.TypeOf((*error)(nil)).Elem() {
-			continue
-		}
-		argType, replyType := mType.In(1), mType.In(2)
-		if !isExportedOrBuiltinType(argType) || !isExportedOrBuiltinType(replyType) {
-			continue
-		}
-		s.method[method.Name] = &methedType{
-			method:    method,
-			ArgType:   argType,
-			ReplyType: replyType,
-		}
-		log.Printf("rpc server: register %s.%s\n", s.name, method.Name)
-	}
-
-}
-
-func (s *service) call(m *methedType, argv, replyv reflect.Value) error {
-	atomic.AddUint64(&m.numCalls, 1)
-	f := m.method.Func
-	returnValues := f.Call([]reflect.Value{s.rcvr, argv, replyv})
-	if errInter := returnValues[0].Interface(); errInter != nil {
-		return errInter.(error)
-	}
-	return nil
-
-}
-
-func isExportedOrBuiltinType(t reflect.Type) bool {
-	return ast.IsExported(t.Name()) || t.PkgPath() == ""
 }

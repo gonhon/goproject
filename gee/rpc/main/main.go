@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"sync"
@@ -51,8 +52,9 @@ func main() {
 		go func(index int) {
 			defer wg.Done()
 			args := &Args{Num1: index, Num2: index * index}
+			ctx, _ := context.WithTimeout(context.Background(), time.Second)
 			var reply int
-			if err := client.Call("Foo.Sum", args, &reply); err != nil {
+			if err := client.Call(ctx, "Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum error:", err)
 			}
 			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
