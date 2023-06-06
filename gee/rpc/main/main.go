@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
 	"sync"
 	"time"
 
@@ -19,7 +20,7 @@ func (f Foo) Sum(args Args, reply *int) error {
 	return nil
 }
 
-func startServer(addr chan string) {
+/* func startServer(addr chan string) {
 	var foo Foo
 	if err := rpc.Register(&foo); err != nil {
 		log.Fatal("register error:", err)
@@ -34,7 +35,7 @@ func startServer(addr chan string) {
 	rpc.Accept(l)
 }
 
-/* func main() {
+func main() {
 	log.SetFlags(0)
 
 	addr := make(chan string)
@@ -62,6 +63,15 @@ func startServer(addr chan string) {
 	}
 	wg.Wait()
 } */
+
+func startServer(addrCh chan string) {
+	var foo Foo
+	l, _ := net.Listen("tcp", ":9999")
+	rpc.Register(&foo)
+	rpc.HandleHTTP()
+	addrCh <- l.Addr().String()
+	http.Serve(l, nil)
+}
 
 func call(addrCh chan string) {
 	client, _ := rpc.DialHTTP("tcp", <-addrCh)
