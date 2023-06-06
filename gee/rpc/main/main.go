@@ -34,7 +34,7 @@ func startServer(addr chan string) {
 	rpc.Accept(l)
 }
 
-func main() {
+/* func main() {
 	log.SetFlags(0)
 
 	addr := make(chan string)
@@ -61,4 +61,33 @@ func main() {
 		}(i)
 	}
 	wg.Wait()
+} */
+
+func call(addrCh chan string) {
+	client, _ := rpc.DialHTTP("tcp", <-addrCh)
+	defer func() { _ = client.Close() }()
+
+	time.Sleep(time.Second)
+	// send request & receive response
+	var wg sync.WaitGroup
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			args := &Args{Num1: i, Num2: i * i}
+			var reply int
+			if err := client.Call(context.Background(), "Foo.Sum", args, &reply); err != nil {
+				log.Fatal("call Foo.Sum error:", err)
+			}
+			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
+		}(i)
+	}
+	wg.Wait()
+}
+
+func main() {
+	log.SetFlags(0)
+	ch := make(chan string)
+	go call(ch)
+	startServer(ch)
 }

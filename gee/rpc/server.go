@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"reflect"
 	"strings"
 	"sync"
@@ -196,7 +197,7 @@ func (server *Server) handleRequest(c codec.Codec, req *request, sending *sync.M
 	}
 }
 
-//注册服务到map
+// 注册服务到map
 func (server *Server) Regisert(rcvr interface{}) error {
 	s := newService(rcvr)
 	if _, dup := server.ServiceMap.LoadOrStore(s.name, s); dup {
@@ -226,4 +227,38 @@ func (server *Server) findService(serviceMethod string) (svc *service, mtype *me
 
 func Register(rcvr interface{}) error {
 	return DefaultServer.Regisert(rcvr)
+}
+
+//===============================http===============================
+
+const (
+	connected        = "200 connected to rpc"
+	defaultRpcPath   = "/rpc"
+	defaultDebugPath = "/debug/rpc"
+)
+
+func (server *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "CONNECT" {
+		w.Header().Set("Content-Type", "text/plain;charset=utf-8")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		io.WriteString(w, "405 must CONNECT\n")
+		return
+	}
+	conn, _, err := w.(http.Hijacker).Hijack()
+	if err != nil {
+		log.Print("rpc hijack error", r.RemoteAddr, ":", err.Error())
+		return
+	}
+	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
+	server.ServerConn(conn)
+}
+
+func (server *Server) HandleHTTP() {
+	http.Handle(defaultRpcPath, server)
+	http.Handle(defaultDebugPath, debugHTTP{server})
+	log.Println("rpc server debug path:", defaultDebugPath)
+}
+
+func HandleHTTP() {
+	DefaultServer.HandleHTTP()
 }
