@@ -44,8 +44,8 @@ func (xc *XClient) dial(rpcAddr string) (*rpc.Client, error) {
 		client = nil
 	}
 	if client == nil {
-		// var err error
-		client, err := rpc.XDial(rpcAddr, xc.opt)
+		var err error
+		client, err = rpc.XDial(rpcAddr, xc.opt)
 		if err != nil {
 			return nil, err
 		}

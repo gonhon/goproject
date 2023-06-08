@@ -115,6 +115,7 @@ func startServer(addrCh chan string) {
 	l, _ := net.Listen("tcp", ":0")
 	server := rpc.NewServer()
 	_ = server.Register(&foo)
+	log.Printf("client addr: %s", l.Addr().String())
 	addrCh <- l.Addr().String()
 	server.Accept(l)
 }
