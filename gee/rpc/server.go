@@ -198,7 +198,7 @@ func (server *Server) handleRequest(c codec.Codec, req *request, sending *sync.M
 }
 
 // 注册服务到map
-func (server *Server) Regisert(rcvr interface{}) error {
+func (server *Server) Register(rcvr interface{}) error {
 	s := newService(rcvr)
 	if _, dup := server.ServiceMap.LoadOrStore(s.name, s); dup {
 		return errors.New("rpc:service already defined:" + s.name)
@@ -226,7 +226,7 @@ func (server *Server) findService(serviceMethod string) (svc *service, mtype *me
 }
 
 func Register(rcvr interface{}) error {
-	return DefaultServer.Regisert(rcvr)
+	return DefaultServer.Register(rcvr)
 }
 
 //===============================http===============================

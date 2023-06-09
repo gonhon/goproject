@@ -4,10 +4,10 @@ import (
 	"context"
 	"log"
 	"net"
-	"net/rpc"
 	"sync"
 	"time"
 
+	"github.com/limerence-code/goproject/gee/rpc"
 	"github.com/limerence-code/goproject/gee/rpc/xclient"
 )
 
@@ -130,7 +130,7 @@ func foo(xc *xclient.XClient, ctx context.Context, typ, serviceMethod string, ar
 		err = xc.Broadcast(ctx, serviceMethod, args, &reply)
 	}
 	if err != nil {
-		log.Printf("%s %s error: %v", typ, serviceMethod, err)
+		log.Printf("fooError====> %s %s error: %v", typ, serviceMethod, err)
 	} else {
 		log.Printf("%s %s success: %d + %d = %d", typ, serviceMethod, args.Num1, args.Num2, reply)
 	}
@@ -180,6 +180,8 @@ func main() {
 
 	addr1 := <-ch1
 	addr2 := <-ch2
+
+	log.Printf("addr1: %s,addr2:%s", addr1, addr2)
 
 	time.Sleep(time.Second)
 	call(addr1, addr2)
