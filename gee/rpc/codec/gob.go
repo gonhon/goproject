@@ -15,10 +15,12 @@ type GobCodec struct {
 }
 
 func (c *GobCodec) ReadHeader(h *Header) error {
+	log.Printf("ReadHeader===>:%v\n", h)
 	return c.dec.Decode(h)
 }
 
 func (c *GobCodec) ReadBody(body interface{}) error {
+	log.Printf("ReadBody===>:%v\n", body)
 	return c.dec.Decode(body)
 }
 func (c *GobCodec) Write(h *Header, body interface{}) (err error) {
@@ -28,6 +30,8 @@ func (c *GobCodec) Write(h *Header, body interface{}) (err error) {
 			c.Close()
 		}
 	}()
+	log.Printf("Write====>header:%v body:%v\n", h, body)
+
 	if err = c.enc.Encode(h); err != nil {
 		log.Println("rpc codec :gob error encoding header :", err)
 		return

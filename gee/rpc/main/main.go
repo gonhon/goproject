@@ -22,6 +22,12 @@ func (f Foo) Sum(args Args, reply *int) error {
 	return nil
 }
 
+func (f Foo) Sleep(args Args, reply *int) error {
+	time.Sleep(time.Second * time.Duration(args.Num1))
+	*reply = args.Num1 + args.Num2
+	return nil
+}
+
 //超时处理
 /* func startServer(addr chan string) {
 	var foo Foo
