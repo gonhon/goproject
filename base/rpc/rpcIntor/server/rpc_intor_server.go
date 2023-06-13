@@ -53,6 +53,10 @@ func rpcCon() {
 
 }
 
+// 支持http
+//
+//	$ curl localhost:1234/jsonrpc -X POST \
+//		--data '{"method":"HelloService.Hello","params":["hello"],"id":0}'
 func httpCon() {
 	rpc.RegisterName("HelloService", new(HelloService))
 
