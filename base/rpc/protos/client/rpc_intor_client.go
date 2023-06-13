@@ -42,8 +42,8 @@ func main() {
 	if err != nil {
 		log.Fatal("rpc err:", err)
 	}
-	helloServer.Hello(&protos.String{Value: "go"}, reply)
-
+	err = helloServer.Hello(&protos.String{Value: "go"}, reply)
+	log.Println("err:", err)
 	// client, err := rpc.Dial("tcp", "127.0.0.1:1234")
 	// if err != nil {
 	// 	log.Fatal("rpc err:", err)
