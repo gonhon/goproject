@@ -35,15 +35,42 @@ func (ms *MemStore) Create(book *mystore.Book) error {
 	return nil
 }
 
-func (ms *MemStore) Update(*mystore.Book) error {
-	return nil
-}
-func (ms *MemStore) Get(string) (mystore.Book, error) {
-	return mystore.Book{}, nil
-}
-func (ms *MemStore) GetAll() ([]mystore.Book, error) {
+func (ms *MemStore) Update(book *mystore.Book) error {
 	ms.Lock()
 	defer ms.Unlock()
+
+	oldBook, exist := ms.books[book.Id]
+	if !exist {
+		return mystore.ErrNotFound
+	}
+	nBook := *oldBook
+	if book.Author != nil {
+		nBook.Author = book.Author
+	}
+	if book.Name != "" {
+		nBook.Name = book.Name
+	}
+	if book.Press != "" {
+		nBook.Press = book.Press
+	}
+	ms.books[book.Id] = &nBook
+
+	return nil
+}
+func (ms *MemStore) Get(id string) (mystore.Book, error) {
+	ms.RLocker().Lock()
+	defer ms.RLocker().Unlock()
+
+	book, exist := ms.books[id]
+	if !exist {
+		return mystore.Book{}, mystore.ErrNotFound
+	}
+
+	return *book, nil
+}
+func (ms *MemStore) GetAll() ([]mystore.Book, error) {
+	ms.RLocker().Lock()
+	defer ms.RLocker().Unlock()
 
 	allBooks := make([]mystore.Book, 0, len(ms.books))
 
@@ -52,6 +79,13 @@ func (ms *MemStore) GetAll() ([]mystore.Book, error) {
 	}
 	return allBooks, nil
 }
-func (ms *MemStore) Delete(string) error {
+func (ms *MemStore) Delete(id string) error {
+	ms.Lock()
+	defer ms.Unlock()
+
+	if _, exist := ms.books[id]; !exist {
+		return mystore.ErrNotFound
+	}
+	delete(ms.books, id)
 	return nil
 }
