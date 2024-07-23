@@ -1,8 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func main() {
+	// test01()
+	test02()
+}
+
+func test01() {
 	var sl = [][]int{
 		{1, 34, 26, 35, 78},
 		{3, 45, 13, 24, 99},
@@ -43,4 +51,30 @@ outerloop:
 		fmt.Println(k, v)
 	}
 	fmt.Println("counter is ", counter)
+}
+
+type field struct {
+	name string
+}
+
+func (f *field) printf() {
+	fmt.Println(f.name)
+}
+
+func test02() {
+
+	var f1 = []*field{{"one"}, {"two"}, {"three"}}
+
+	for _, v := range f1 {
+		go v.printf()
+	}
+
+	var f2 = []*field{{"four"}, {"five"}, {"six"}}
+
+	for _, v := range f2 {
+		go v.printf()
+	}
+
+	time.Sleep(3 * time.Second)
+
 }
