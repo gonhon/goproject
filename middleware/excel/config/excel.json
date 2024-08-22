@@ -1,0 +1,12 @@
+{
+    "fileName":"../赣榆乡镇增值税号和水表类别完善.xlsx",
+    "tableName":"import_test_demo",
+    "skipRows":2,
+    "mysql":{
+        "userName":"wpg",
+        "password":"DmJme(ZFl9txW@2P",
+        "ip":"10.10.102.205",
+        "port":"3306",
+        "database":"waterdb_ys_gy"
+        }
+}
