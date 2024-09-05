@@ -36,7 +36,7 @@ func startClient(i int) {
 	}
 	defer conn.Close()
 
-	fmt.Println("[client %d]:dial ok", i)
+	fmt.Printf("[client %d]:dial ok", i)
 
 	//生成payload
 	rng, err := codename.DefaultRNG()
