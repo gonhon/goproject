@@ -1,7 +1,7 @@
 /*
  * @Author: gaoh
  * @Date: 2024-08-14 14:24:11
- * @LastEditTime: 2024-08-22 19:00:44
+ * @LastEditTime: 2024-09-18 18:20:21
  */
 package main
 
@@ -138,17 +138,29 @@ func insertData(db *sql.DB, name string, sheet *xlsx.Sheet) int64 {
 		}
 		// 拼接值
 		var colValues []string
+		//记录空行数
+		var nilCount uint8
+		for inc, cell := range row.Cells {
 
-		for _, cell := range row.Cells {
 			switch cell.Type() {
 			case xlsx.CellTypeString:
 				colValues = append(colValues, "'"+cell.String()+"'")
 			case xlsx.CellTypeNumeric:
-				i, _ := cell.Int()
-				colValues = append(colValues, strconv.Itoa(i))
+				if i, err := cell.Int(); err == nil {
+					colValues = append(colValues, strconv.Itoa(i))
+				} else {
+					nilCount++
+				}
 			case xlsx.CellTypeBool:
 				colValues = append(colValues, strconv.FormatBool(cell.Bool()))
+			default:
+				fmt.Printf("%d行%d列未解析到对应类型的数据,cell type: %d\n", idx+1, inc+1, cell.Type())
 			}
+		}
+
+		if len(row.Cells) == int(nilCount) {
+			fmt.Printf("%d行数据全部为空,跳过该行数据\n", idx+1)
+			continue
 		}
 		values = append(values, fmt.Sprintf("('%s',%s)", sheet.Name, strings.Join(colValues, ",")))
 		if len(values) == 50 {
