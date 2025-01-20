@@ -1,0 +1,28 @@
+package main
+
+import (
+	"flag"
+
+	"github.com/golang/glog"
+)
+
+func main() {
+	flag.Set("v", "0")
+	flag.Set("log_dir", "")
+	// 解析命令行参数
+	flag.Parse()
+
+	// 记录日志
+	glog.Info("Application started.")
+	glog.Warning("This is a warning message.")
+	glog.Error("This is an error message.")
+	glog.V(3).Info("LEVEL 3 message") // 使用日志级别 3
+	glog.V(4).Info("LEVEL 4 message") // 使用日志级别 4
+	glog.V(5).Info("LEVEL 5 message") // 使用日志级别 5
+	glog.V(8).Info("LEVEL 8 message") // 使用日志级别 8
+	if glog.V(2) {
+		glog.Info("Starting transaction...")
+	}
+	// 程序结束前记录日志
+	glog.Flush() // 确保所有日志都被写入
+}
