@@ -13,8 +13,8 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// ChangeEvent 表示 Debezium 变更事件结构
-type ChangeEvent struct {
+// Payload 表示 Debezium 变更事件结构
+type Payload struct {
 	Before map[string]interface{} `json:"before"`
 	After  map[string]interface{} `json:"after"`
 	Source struct {
@@ -22,6 +22,11 @@ type ChangeEvent struct {
 		Table    string `json:"table"`
 	} `json:"source"`
 	Op string `json:"op"` // "c"=create, "u"=update, "d"=delete
+}
+
+type MsgEvent struct {
+	Payload Payload                `json:"payload"`
+	Schema  map[string]interface{} `json:"schema"`
 }
 
 // ESClient 封装 Elasticsearch 操作
@@ -131,7 +136,7 @@ func getDocumentID(doc map[string]interface{}) (string, error) {
 }
 
 // processEvent 处理单个变更事件
-func processEvent(es *ESClient, event ChangeEvent) error {
+func processEvent(es *ESClient, event Payload) error {
 	// 构建 Elasticsearch 索引名称 (db_table 格式)
 	indexName := fmt.Sprintf("%s_%s", strings.ToLower(event.Source.Database), strings.ToLower(event.Source.Table))
 
@@ -188,7 +193,7 @@ func segmentio_start() {
 		}
 
 		// 解析变更事件
-		var event ChangeEvent
+		var event Payload
 		if err := json.Unmarshal(msg.Value, &event); err != nil {
 			log.Printf("Error unmarshaling event from topic %s: %v", msg.Topic, err)
 			continue
@@ -205,6 +210,37 @@ func segmentio_start() {
 			map[string]string{"c": "create", "u": "update", "d": "delete"}[event.Op],
 			event.Source.Database,
 			event.Source.Table)
+	}
+}
+func c_segmentio_start() {
+	// 初始化 Kafka 消费者
+	kafkaReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        []string{"localhost:9092"},
+		GroupID:        "es-sync-group",
+		MinBytes:       10e3, // 10KB
+		MaxBytes:       10e6, // 10MB
+		CommitInterval: time.Second,
+		// 监听所有表变更的 topic 模式
+		Topic:       "v_debezium.*",
+		GroupTopics: []string{"v_debezium.go-admin.sys_login_log"},
+	})
+
+	log.Println("Starting consumer...")
+	for {
+		// 读取消息
+		msg, err := kafkaReader.ReadMessage(context.Background())
+		if err != nil {
+			log.Printf("Error reading message: %v", err)
+			continue
+		}
+		fmt.Printf("msg:%v\n", string(msg.Value))
+		// 解析变更事件
+		var event MsgEvent
+		if err := json.Unmarshal(msg.Value, &event); err != nil {
+			log.Printf("Error unmarshaling event from topic %s: %v", msg.Topic, err)
+			continue
+		}
+		fmt.Printf("event:%v", event.Payload.After)
 	}
 }
 
@@ -296,7 +332,7 @@ type BulkProcessor struct {
 	esClient    *ESClient
 	batchSize   int
 	maxInterval time.Duration
-	queue       chan ChangeEvent
+	queue       chan Payload
 }
 
 func NewBulkProcessor(esClient *ESClient, batchSize int, maxInterval time.Duration) *BulkProcessor {
@@ -304,13 +340,13 @@ func NewBulkProcessor(esClient *ESClient, batchSize int, maxInterval time.Durati
 		esClient:    esClient,
 		batchSize:   batchSize,
 		maxInterval: maxInterval,
-		queue:       make(chan ChangeEvent, batchSize*2),
+		queue:       make(chan Payload, batchSize*2),
 	}
 }
 
 func (bp *BulkProcessor) Start() {
 	go func() {
-		var batch []ChangeEvent
+		var batch []Payload
 		ticker := time.NewTicker(bp.maxInterval)
 		defer ticker.Stop()
 
@@ -333,11 +369,11 @@ func (bp *BulkProcessor) Start() {
 	}()
 }
 
-func (bp *BulkProcessor) AddEvent(event ChangeEvent) {
+func (bp *BulkProcessor) AddEvent(event Payload) {
 	bp.queue <- event
 }
 
-func (bp *BulkProcessor) processBatch(batch []ChangeEvent) {
+func (bp *BulkProcessor) processBatch(batch []Payload) {
 	var buf strings.Builder
 
 	for _, event := range batch {

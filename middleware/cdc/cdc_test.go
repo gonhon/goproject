@@ -9,5 +9,6 @@ func TestStart(m *testing.T) {
 	// sarama_start()
 	// segmentio_start()
 	fmt.Println("======================")
-	consumer_start()
+	// consumer_start()
+	c_segmentio_start()
 }
