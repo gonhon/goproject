@@ -19,3 +19,18 @@
 使用 ice.Agent 自动管理候选地址。
 
 ## 自建 TURN 服务器（Coturn）
+
+
+integratedTerminal 可在中断进行stdin
+```json
+"configurations": [
+        {
+            "name": "Launch Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${fileDirname}",
+            "console": "integratedTerminal" 
+        }
+    ]
+```
